@@ -10,18 +10,23 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      # 1️⃣ Checkout repo
+      - name: Checkout code
         uses: actions/checkout@v3
 
+      # 2️⃣ Login to Docker Hub
       - name: Login to Docker Hub
         run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
-      - name: Build image
+      # 3️⃣ Build Docker image
+      - name: Build Docker image
         run: docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/my-microservice:latest .
 
-      - name: Push image
+      # 4️⃣ Push image to Docker Hub
+      - name: Push Docker image
         run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/my-microservice:latest
 
+      # 5️⃣ SSH into EC2 and deploy
       - name: Deploy on EC2
         uses: appleboy/ssh-action@v0.1.6
         with:
@@ -32,4 +37,8 @@ jobs:
             docker pull ${{ secrets.DOCKERHUB_USERNAME }}/my-microservice:latest
             docker stop blue || true
             docker rm blue || true
-            docker run -d --name blue -p 3000:3000 ${{ secrets.DOCKERHUB_USERNAME }}/my-microservice:latest
+            docker run -d \
+              --name blue \
+              -p 3000:3000 \
+              --restart always \
+              ${{ secrets.DOCKERHUB_USERNAME }}/my-microservice:latest
